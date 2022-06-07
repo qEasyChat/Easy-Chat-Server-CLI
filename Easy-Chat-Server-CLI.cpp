@@ -1,20 +1,55 @@
-// Easy-Chat-Server-CLI.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
-
+#include <string>
+#include <vector>
 #include <iostream>
+#include <iomanip>
+#include <sstream>
+#include <string>
 
-int main()
+#include <Windows.h>
+#include <windef.h>
+
+#include "Server.h"
+#include "Utils.h"
+
+using namespace std;
+
+int main(int argc, char* argv[])
 {
-    std::cout << "Hello World!\n";
+	WSADATA wsa_data;
+	WSAStartup(MAKEWORD(1, 1), &wsa_data);
+	std::vector<std::string> parameter_list(argv + 1, argv + argc);
+
+	std::string server_name = parameter_list[0];
+	std::string server_port_string = parameter_list[1];
+
+	size_t server_port = Utils::string_to_size_t(server_port_string);
+
+	std::cout << "creating server with options:" << std::endl;
+	std::cout << "name: " << server_name << std::endl;
+	std::cout << "port: " << server_port << std::endl;
+
+	Database_Driver_Type driver_type;
+	std::string file_name;
+
+	auto ini_db_driver_iterator = std::find(parameter_list.begin(), parameter_list.end(), "-ini");
+	if (ini_db_driver_iterator != parameter_list.end())
+	{
+		driver_type = Database_Driver_Type::INI;
+		auto file_name_iterator = std::next(ini_db_driver_iterator, 1);
+		file_name = *file_name_iterator;
+
+	}
+	auto sqlite_db_driver_iterator = std::find(parameter_list.begin(), parameter_list.end(), "-sqlite");
+	if (sqlite_db_driver_iterator != parameter_list.end())
+	{
+		driver_type = Database_Driver_Type::SQLITE;
+		auto file_name_iterator = std::next(sqlite_db_driver_iterator, 1);
+		file_name = *file_name_iterator;
+
+	}
+
+	std::unique_ptr<Server> server(new Server(server_name, server_port));
+	server->connect_to_database(driver_type, file_name);
+	server->start();
+	WSACleanup();
 }
-
-// Run program: Ctrl + F5 or Debug > Start Without Debugging menu
-// Debug program: F5 or Debug > Start Debugging menu
-
-// Tips for Getting Started: 
-//   1. Use the Solution Explorer window to add/manage files
-//   2. Use the Team Explorer window to connect to source control
-//   3. Use the Output window to see build output and other messages
-//   4. Use the Error List window to view errors
-//   5. Go to Project > Add New Item to create new code files, or Project > Add Existing Item to add existing code files to the project
-//   6. In the future, to open this project again, go to File > Open > Project and select the .sln file
